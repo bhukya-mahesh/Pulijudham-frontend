@@ -5,6 +5,8 @@ A modern React implementation of the traditional Indian strategy board game **Pu
 The game is built entirely with React, SVG, and state management using hooks. Players can place goats, move pieces, capture goats with tigers, and play until one side wins.
 
 ---
+## 🌐 Live Demo
+**Frontend:https://pulijudham-frontend.vercel.app/
 
 ## 🎮 Game Rules
 
