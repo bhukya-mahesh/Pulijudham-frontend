@@ -5,7 +5,7 @@ function Piece({ x, y, type }) {
         cx={x}
         cy={y}
         r="22"
-        fill={type === "tiger" ? "#f97316" : "#ffffff"}
+        fill={type === "tiger" ? "#D97706" : "#FFF8DC"}
         stroke="#000"
         strokeWidth="2"
       />

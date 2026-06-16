@@ -5,18 +5,42 @@ import { getCaptureMoves } from "../utils/getCaptureMoves";
 
 
 function Board({ gameState, setGameState }) {
-
-    const handleTigerClick = (tigerNodeId) => {
+const handleTigerClick = (tigerNodeId) => {
+      if (gameState.winner) return;
         if (gameState.turn !== "tiger") return
 
          setGameState({
            ...gameState,
             selectedTiger: tigerNodeId,
+            selectedGoat : null,
             });
         };
+
+const handleGoatClick = (goatNodeId) => {
+  if (gameState.winner) return;
+  if (gameState.turn !== "goat") return;
+
+  if (gameState.goatsRemaining > 0) return;
+
+  setGameState({
+    ...gameState,
+    selectedGoat: goatNodeId,
+    selectedTiger:null,
+  });
+};
+
     const validMoves =
      gameState.selectedTiger !== null
      ? getConnectedNodes(gameState.selectedTiger).filter(
+        (nodeId) =>
+          !gameState.tigers.includes(nodeId) &&
+          !gameState.goats.includes(nodeId)
+      )
+    : [];
+
+    const goatValidMoves =
+  gameState.selectedGoat !== null
+    ? getConnectedNodes(gameState.selectedGoat).filter(
         (nodeId) =>
           !gameState.tigers.includes(nodeId) &&
           !gameState.goats.includes(nodeId)
@@ -32,39 +56,78 @@ function Board({ gameState, setGameState }) {
       )
     : [];
   
- const handleNodeClick = (nodeId) => {
+   
+const handleNodeClick = (nodeId) => {
+    if (gameState.winner) return;
+   if (
+  gameState.turn === "goat" &&
+  gameState.goatsRemaining > 0
+) {
 
-  // GOAT PLACEMENT PHASE
   if (
-    gameState.turn === "goat" &&
-    gameState.goatsRemaining > 0
+    gameState.tigers.includes(nodeId) ||
+    gameState.goats.includes(nodeId)
   ) {
-
-    if (
-      gameState.tigers.includes(nodeId) ||
-      gameState.goats.includes(nodeId)
-    ) {
-      return;
-    }
-
-    setGameState({
-      ...gameState,
-      goats: [...gameState.goats, nodeId],
-      goatsRemaining: gameState.goatsRemaining - 1,
-      turn: "tiger",
-    });
-
     return;
   }
 
+  setGameState({
+    ...gameState,
+    goats: [...gameState.goats, nodeId],
+    goatsRemaining: gameState.goatsRemaining - 1,
+    moveHistory: [
+      ...gameState.moveHistory,
+      `🐐 Goat placed at node ${nodeId}`,
+    ],
+    turn: "tiger",
+  });
+
+  return;
+}
+   
+  // GOAT MOVEMENT PHASE
+  if (
+  gameState.turn === "goat" &&
+  gameState.goatsRemaining === 0 &&
+  gameState.selectedGoat !== null
+) {
+
+  if (!goatValidMoves.includes(nodeId))
+    return;
+
+  const updatedGoats =
+    gameState.goats.map((id) =>
+      id === gameState.selectedGoat
+        ? nodeId
+        : id
+    );
+
+  setGameState({
+    ...gameState,
+    goats: updatedGoats,
+      moveHistory: [
+    ...gameState.moveHistory,
+    `🐐 Goat moved to node ${nodeId}`,
+  ],
+    selectedGoat: null,
+    selectedTiger : null,
+    turn: "tiger",
+  });
+
+  return;
+}
   // TIGER MOVE PHASE
   if (
-    gameState.turn === "tiger" &&
-    gameState.selectedTiger !== null
-  ) {
+  gameState.turn === "tiger" &&
+  gameState.selectedTiger !== null
+) {
 
-    if (!validMoves.includes(nodeId)) return;
+  const captureMove = captureMoves.find(
+    (move) => move.landingId === nodeId
+  );
 
+  // CAPTURE MOVE
+  if (captureMove) {
     const updatedTigers =
       gameState.tigers.map((id) =>
         id === gameState.selectedTiger
@@ -72,30 +135,67 @@ function Board({ gameState, setGameState }) {
           : id
       );
 
+    const updatedGoats =
+      gameState.goats.filter(
+        (id) => id !== captureMove.goatId
+      );
+
     setGameState({
       ...gameState,
       tigers: updatedTigers,
+      goats: updatedGoats,
+      goatsCaptured:
+        (gameState.goatsCaptured || 0) + 1,
+     moveHistory: [
+    ...gameState.moveHistory,
+    `🐯 Captured goat at node ${captureMove.goatId}`,
+  ], 
       selectedTiger: null,
+      selectedGoat : null,
       turn: "goat",
     });
+
+    return;
   }
+
+  // NORMAL MOVE
+  if (!validMoves.includes(nodeId)) return;
+
+  const updatedTigers =
+    gameState.tigers.map((id) =>
+      id === gameState.selectedTiger
+        ? nodeId
+        : id
+    );
+
+  setGameState({
+    ...gameState,
+    tigers: updatedTigers,
+    moveHistory: [
+    ...gameState.moveHistory,
+    `🐯 Tiger moved to node ${nodeId}`,
+  ],
+    selectedTiger: null,
+    selectedGoat: null,
+    turn: "goat",
+  });
+}
+
 };
   
 
   return (
-    <div className="flex-1 bg-gray-800 rounded-xl p-4">
+    <div className="flex-1 bg-[#8B5E3C] rounded-xl p-4 shadow-2xl">
       <h2 className="text-2xl mb-4 text-white">
-        Game Board
+         Game Board   
       </h2>
-
-      <div className="relative w-[800px] h-[500px] border rounded-lg mx-auto">
+      <div className="relative w-full max-w-[800px] aspect-[8/5] border-4 border-[#5C4033] rounded-lg mx-auto bg-[#F5E6CA]">
 
         <svg
           className="absolute inset-0 w-full h-full"
           viewBox="0 0 800 500"
         >
-
-          {/* Connections */}
+            {/*connections*/}
           {connections.map(([start, end], index) => {
             const from = nodes.find(
               (n) => n.id === start
@@ -112,13 +212,13 @@ function Board({ gameState, setGameState }) {
                 y1={from.y}
                 x2={to.x}
                 y2={to.y}
-                stroke="white"
+                stroke="#5C4033"
                 strokeWidth="3"
               />
             );
           })}
 
-          {/* Nodes */}
+          {/*nodes */}
           {nodes.map((node) => (
             <circle
               key={node.id}
@@ -132,7 +232,9 @@ function Board({ gameState, setGameState }) {
     ? "#ef4444"
     : validMoves.includes(node.id)
     ? "#22c55e"
-    : "white"
+    :goatValidMoves.includes(node.id)
+    ? "#3b82f6"
+    : "#FFF8DC"
 }
               stroke="black"
               strokeWidth="2"
@@ -143,46 +245,79 @@ function Board({ gameState, setGameState }) {
             />
           ))}
 
-          {/* Tigers */}
+          {/*Tigers */}
          {gameState.tigers.map((id) => {
   const node = nodes.find(
     (n) => n.id === id
   );
 
   return (
-    <g
+   <g
   key={`tiger-${id}`}
   onClick={() => handleTigerClick(id)}
   style={{
     cursor: "pointer",
     opacity:
       gameState.selectedTiger === id
-        ? 0.7
+        ? 0.85
         : 1,
   }}
 >
-      <Piece
-        x={node.x}
-        y={node.y}
-        type="tiger"
-      />
-    </g>
+  {gameState.selectedTiger === id && (
+    <circle
+      cx={node.x}
+      cy={node.y}
+      r="28"
+      fill="none"
+      stroke="#facc15"
+      strokeWidth="4"
+    />
+  )}
+
+  <Piece
+    x={node.x}
+    y={node.y}
+    type="tiger"
+  />
+</g>
   );
 })}
 
-          {/* Goats */}
+          {/*Goats */}
           {gameState.goats.map((id) => {
             const node = nodes.find(
               (n) => n.id === id
             );
 
             return (
-              <Piece
-                key={`goat-${id}`}
-                x={node.x}
-                y={node.y}
-                type="goat"
-              />
+     <g
+  key={`goat-${id}`}
+  onClick={() => handleGoatClick(id)}
+  style={{
+    cursor: "pointer",
+    opacity:
+      gameState.selectedGoat === id
+        ? 0.85
+        : 1,
+  }}
+>
+  {gameState.selectedGoat === id && (
+    <circle
+      cx={node.x}
+      cy={node.y}
+      r="28"
+      fill="none"
+      stroke="#3b82f6"
+      strokeWidth="4"
+    />
+  )}
+
+  <Piece
+    x={node.x}
+    y={node.y}
+    type="goat"
+  />
+</g>
             );
           })}
         </svg>
