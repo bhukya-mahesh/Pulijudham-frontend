@@ -27,20 +27,32 @@ The game is built entirely with React, SVG, and state management using hooks. Pl
 ## ✨ Features
 ### Game Mechanics
 ✅ Goat Placement Phase
+
 ✅ Goat Movement Phase
+
 ✅ Tiger Movement
+
 ✅ Tiger Capture Logic
+
 ✅ Turn-Based Gameplay
+
 ✅ Winner Detection
+
 ✅ Restart Game
 
-### User Interface
+## User Interface
 ✅ Interactive SVG Board
+
 ✅ Move Highlighting
+
 ✅ Selected Piece Highlighting
+
 ✅ Tiger Score Tracking
+
 ✅ Move History Panel
+
 ✅ Winner Modal
+
 ✅ Responsive Layout
 ---
 ### Game Board
